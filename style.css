@@ -1,0 +1,200 @@
+/* กำหนดให้ขนาดของ Element รวม padding และ border */
+* {
+    box-sizing: border-box;
+}
+
+/* หน้าเว็บไซต์ */
+body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: Arial, sans-serif;
+    color: #1f2937;
+    background: linear-gradient(135deg, #eef2ff, #dbeafe);
+}
+
+/* กล่องหลักของเว็บไซต์ */
+.container {
+    width: min(900px, 92%);
+    margin: 40px auto;
+}
+
+/* ส่วนหัว */
+.header {
+    margin-bottom: 24px;
+    text-align: center;
+}
+
+.header h1 {
+    margin-bottom: 8px;
+    color: #1e3a8a;
+}
+
+/* กล่องเนื้อหาแต่ละส่วน */
+.wallet-card,
+.admin-card,
+.voting-card,
+.message-card {
+    margin-bottom: 20px;
+    padding: 24px;
+    background-color: #ffffff;
+    border-radius: 16px;
+    box-shadow: 0 10px 30px rgba(30, 58, 138, 0.1);
+}
+
+/* ส่วนแสดงข้อมูล Wallet */
+.wallet-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.wallet-address {
+    color: #475569;
+    overflow-wrap: anywhere;
+}
+
+/* ป้ายแสดงสถานะ */
+.status {
+    display: inline-block;
+    padding: 8px 14px;
+    color: #3730a3;
+    font-weight: bold;
+    background-color: #e0e7ff;
+    border-radius: 999px;
+}
+
+/* Grid สำหรับแสดงรายชื่อผู้สมัคร */
+.candidate-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit,
+            minmax(200px, 1fr));
+    gap: 16px;
+    margin-top: 20px;
+}
+
+/* การ์ดผู้สมัคร */
+.candidate {
+    padding: 20px;
+    text-align: center;
+    background-color: #ffffff;
+    border: 2px solid #e2e8f0;
+    border-radius: 14px;
+    transition: border-color 0.2s, transform 0.2s;
+}
+
+.candidate:hover {
+    border-color: #2563eb;
+    transform: translateY(-3px);
+}
+
+/* ชื่อผู้สมัคร */
+.candidate-name {
+    margin: 0 0 16px;
+    color: #1e3a8a;
+    font-size: 1.3rem;
+}
+
+/* คะแนนที่ได้รับ */
+.vote-result {
+    margin: 12px 0;
+    color: #2563eb;
+    font-size: 1.7rem;
+    font-weight: bold;
+}
+
+/* ปุ่มทั่วไป */
+button {
+    padding: 11px 18px;
+    color: #ffffff;
+    font-size: 1rem;
+    background-color: #2563eb;
+    border: none;
+    border-radius: 9px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+button:hover {
+    background-color: #1d4ed8;
+}
+
+/* ปุ่มที่ไม่สามารถกดได้ */
+button:disabled {
+    background-color: #94a3b8;
+    cursor: not-allowed;
+}
+
+/* ปุ่มปิดการลงคะแนน */
+.danger {
+    background-color: #dc2626;
+}
+
+.danger:hover {
+    background-color: #b91c1c;
+}
+
+/* กลุ่มปุ่มของผู้ดูแล */
+.admin-buttons {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+/* ข้อความแจ้งสถานะ */
+.message {
+    margin: 0;
+    line-height: 1.6;
+}
+
+/* ข้อความสำเร็จ */
+.success {
+    color: #15803d;
+}
+
+/* ข้อความผิดพลาด */
+.error {
+    color: #dc2626;
+}
+
+/* ซ่อน Element */
+.hidden {
+    display: none;
+}
+
+/* ปรับการแสดงผลสำหรับโทรศัพท์มือถือ */
+@media (max-width: 600px) {
+    .container {
+        width: 94%;
+        margin: 20px auto;
+    }
+
+    .wallet-card,
+    .admin-card,
+    .voting-card,
+    .message-card {
+        padding: 18px;
+    }
+
+    .wallet-row {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .wallet-row button {
+        width: 100%;
+    }
+
+    .admin-buttons {
+        flex-direction: column;
+    }
+
+    .admin-buttons button {
+        width: 100%;
+    }
+
+    .candidate-grid {
+        grid-template-columns: 1fr;
+    }
+}

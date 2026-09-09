@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Blockchain Voting</title>
+
+    <!-- เชื่อมต่อไฟล์ CSS -->
+    <link rel="stylesheet" href="style.css">
+
+    <!-- เรียกใช้ ethers.js -->
+    <script src="https://cdn.jsdelivr.net/npm/ethers@6.13.5/dist/ethers.umd.min.js"></script>
+</head>
+
+<body>
+
+    <main class="container">
+
+        <!-- ส่วนหัวเว็บไซต์ -->
+        <header class="header">
+            <h1>Blockchain Voting</h1>
+            <p>ระบบลงคะแนนเสียงด้วย Smart Contract</p>
+        </header>
+
+        <!-- ส่วนเชื่อมต่อ MetaMask -->
+        <section class="wallet-card">
+
+            <div class="wallet-row">
+
+                <div>
+                    <strong>Wallet</strong>
+
+                    <div id="walletAddress" class="wallet-address">
+                        ยังไม่ได้เชื่อมต่อ
+                    </div>
+                </div>
+
+                <button id="connectButton" type="button">
+                    เชื่อมต่อ MetaMask
+                </button>
+
+            </div>
+
+        </section>
+
+        <!-- ส่วนแสดงสถานะการลงคะแนน -->
+        <section class="admin-card">
+
+            <h2>สถานะการลงคะแนน</h2>
+
+            <p>
+                สถานะ:
+
+                <span id="votingState" class="status">
+                    ยังไม่ได้โหลดข้อมูล
+                </span>
+            </p>
+
+            <!-- แสดงเฉพาะ Account ผู้ดูแล -->
+            <div id="adminPanel" class="admin-buttons hidden">
+
+                <button id="startButton" type="button">
+                    เปิดการลงคะแนน
+                </button>
+
+                <button id="endButton" class="danger" type="button">
+                    ปิดการลงคะแนน
+                </button>
+
+            </div>
+
+        </section>
+
+        <!-- ส่วนแสดงรายชื่อผู้สมัคร -->
+        <section class="voting-card">
+
+            <h2>รายชื่อผู้สมัคร</h2>
+
+            <p id="voterStatus">
+                กรุณาเชื่อมต่อ MetaMask
+            </p>
+
+            <div id="candidateList" class="candidate-grid">
+                <!-- JavaScript สร้างรายชื่อและปุ่มที่นี่ -->
+            </div>
+
+        </section>
+
+        <!-- ส่วนแสดงข้อความแจ้งเตือน -->
+        <section class="message-card">
+
+            <p id="message" class="message">
+                กรุณาเชื่อมต่อ MetaMask เพื่อเริ่มใช้งาน
+            </p>
+
+        </section>
+
+    </main>
+
+    <script>
+        /*
+         * ใส่ Contract Address ที่ได้จาก Remix
+         */
+        const CONTRACT_ADDRESS = "0x28baa903a5cf84c34ff08af0e013a18cc494c0ec"
+
+
+        /*
+         * ABI ของ Smart Contract
+         */
+        const CONTRACT_ABI = [
+	{
+		"inputs": [],
+		"name": "endVote",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "startVote",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "string[]",
+				"name": "candidateNames",
+				"type": "string[]"
+			}
+		],
+		"stateMutability": "nonpayable",
+		"type": "constructor"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "candidate",
+				"type": "string"
+			}
+		],
+		"name": "voteForCandidate",
+		"outputs": [],
+		"stateMutability": "nonpayable",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"name": "candidateList",
+		"outputs": [
+			{
+				"internalType": "string",
+				"name": "",
+				"type": "string"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "getCandidateList",
+		"outputs": [
+			{
+				"internalType": "string[]",
+				"name": "",
+				"type": "string[]"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "candidate",
+				"type": "string"
+			}
+		],
+		"name": "isValidCandidate",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"name": "isVoted",
+		"outputs": [
+			{
+				"internalType": "bool",
+				"name": "",
+				"type": "bool"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "officialAddress",
+		"outputs": [
+			{
+				"internalType": "address",
+				"name": "",
+				"type": "address"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [],
+		"name": "state",
+		"outputs": [
+			{
+				"internalType": "enum Voting.State",
+				"name": "",
+				"type": "uint8"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	},
+	{
+		"inputs": [
+			{
+				"internalType": "string",
+				"name": "candidate",
+				"type": "string"
+			}
+		],
+		"name": "totalVotesFor",
+		"outputs": [
+			{
+				"internalType": "uint256",
+				"name": "",
+				"type": "uint256"
+			}
+		],
+		"stateMutability": "view",
+		"type": "function"
+	}
+];
+
+
+        let provider = null;
+        let signer = null;
+        let contract = null;
+        let currentAccount = null;
+        let currentState = null;
+
+        const STATE_NAMES = [
+            "สร้างรายการแล้ว",
+            "กำลังเปิดลงคะแนน",
+            "สิ้นสุดการลงคะแนน"
+        ];
+
+        /*
+         * อ้างอิง Element จากหน้าเว็บไซต์
+         */
+        const connectButton =
+            document.getElementById("connectButton");
+
+        const startButton =
+            document.getElementById("startButton");
+
+        const endButton =
+            document.getElementById("endButton");
+
+        /*
+         * กำหนด Event ให้ปุ่ม
+         */
+        connectButton.addEventListener(
+            "click",
+            connectWallet
+        );
+
+        startButton.addEventListener(
+            "click",
+            startVote
+        );
+
+        endButton.addEventListener(
+            "click",
+            endVote
+        );
+
+        /*
+         * เชื่อมต่อกับ MetaMask
+         */
+        async function connectWallet() {
+            try {
+                if (!window.ethereum) {
+                    showMessage(
+                        "ไม่พบ MetaMask กรุณาติดตั้ง MetaMask",
+                        true
+                    );
+
+                    return;
+                }
+
+
+                /*
+                 * ขอ Account จาก MetaMask
+                 */
+                const accounts =
+                    await window.ethereum.request({
+                        method: "eth_requestAccounts"
+                    });
+
+                if (accounts.length === 0) {
+                    showMessage(
+                        "ไม่พบ Account ใน MetaMask",
+                        true
+                    );
+
+                    return;
+                }
+
+                await setupContract(accounts[0]);
+
+                showMessage(
+                    "เชื่อมต่อ MetaMask สำเร็จ"
+                );
+
+                await loadVotingData();
+
+            } catch (error) {
+                showError(error);
+            }
+        }
+
+        /*
+         * สร้าง Provider, Signer และ Contract
+         */
+        async function setupContract(account) {
+            provider = new ethers.BrowserProvider(
+                window.ethereum
+            );
+
+            signer = await provider.getSigner();
+
+            currentAccount = account;
+
+            contract = new ethers.Contract(
+                CONTRACT_ADDRESS,
+                CONTRACT_ABI,
+                signer
+            );
+
+            document.getElementById(
+                "walletAddress"
+            ).textContent = currentAccount;
+
+            connectButton.textContent = "เชื่อมต่อแล้ว";
+        }
+
+        /*
+         * โหลดข้อมูลจาก Smart Contract
+         */
+        async function loadVotingData() {
+            try {
+                if (!contract || !currentAccount) {
+                    return;
+                }
+
+                /*
+                 * ตรวจสอบว่า Contract อยู่บน Network นี้จริง
+                 */
+                const code =
+                    await provider.getCode(
+                        CONTRACT_ADDRESS
+                    );
+
+                if (code === "0x") {
+                    throw new Error(
+                        "CONTRACT_NOT_FOUND"
+                    );
+                }
+
+                currentState = Number(
+                    await contract.state()
+                );
+
+                const official =
+                    await contract.officialAddress();
+
+                const voted =
+                    await contract.isVoted(
+                        currentAccount
+                    );
+
+                const candidates =
+                    await contract.getCandidateList();
+
+                document.getElementById(
+                    "votingState"
+                ).textContent =
+                    STATE_NAMES[currentState] ??
+                    "ไม่ทราบสถานะ";
+
+                document.getElementById(
+                    "voterStatus"
+                ).textContent = voted
+                        ? "บัญชีนี้ลงคะแนนแล้ว"
+                        : "บัญชีนี้ยังไม่ได้ลงคะแนน";
+
+                /*
+                 * ตรวจสอบว่า Account นี้เป็นผู้ดูแลหรือไม่
+                 */
+                const isOfficial =
+                    official.toLowerCase() ===
+                    currentAccount.toLowerCase();
+
+                document.getElementById(
+                    "adminPanel"
+                ).classList.toggle(
+                    "hidden",
+                    !isOfficial
+                );
+
+                updateAdminButtons();
+
+                await displayCandidates(
+                    candidates,
+                    voted
+                );
+
+            } catch (error) {
+                showError(error);
+            }
+        }
+
+        /*
+         * เปิดหรือปิดปุ่มตามสถานะ
+         */
+        function updateAdminButtons() {
+            startButton.disabled =
+                currentState !== 0;
+
+            endButton.disabled =
+                currentState !== 1;
+        }
+
+        /*
+         * แสดงรายชื่อผู้สมัครและสร้างปุ่ม
+         */
+        async function displayCandidates(
+            candidates,
+            voted
+        ) {
+            const container =
+                document.getElementById(
+                    "candidateList"
+                );
+
+            container.innerHTML = "";
+
+            for (const candidate of candidates) {
+                const card =
+                    document.createElement("article");
+
+                card.className = "candidate";
+
+                const title =
+                    document.createElement("h3");
+
+                title.className = "candidate-name";
+                title.textContent = candidate;
+
+                card.appendChild(title);
+
+                /*
+                 * แสดงผลคะแนนเมื่อการลงคะแนนสิ้นสุด
+                 */
+                if (currentState === 2) {
+                    const total =
+                        await contract.totalVotesFor(
+                            candidate
+                        );
+
+                    const result =
+                        document.createElement("p");
+
+                    result.className = "vote-result";
+
+                    result.textContent =
+                        total.toString() + " คะแนน";
+
+                    card.appendChild(result);
+
+                } else {
+                    /*
+                     * สร้างปุ่มลงคะแนน
+                     */
+                    const voteButton =
+                        document.createElement("button");
+
+                    voteButton.type = "button";
+
+                    voteButton.textContent =
+                        "ลงคะแนนให้ " + candidate;
+
+                    voteButton.disabled =
+                        currentState !== 1 || voted;
+
+                    voteButton.addEventListener(
+                        "click",
+                        function () {
+                            vote(candidate);
+                        }
+                    );
+
+                    card.appendChild(voteButton);
+                }
+
+                container.appendChild(card);
+            }
+        }
+
+        /*
+         * เปิดการลงคะแนน
+         */
+        async function startVote() {
+            try {
+                if (!contract) {
+                    showMessage(
+                        "กรุณาเชื่อมต่อ MetaMask ก่อน",
+                        true
+                    );
+
+                    return;
+                }
+
+                showMessage(
+                    "กำลังเปิดการลงคะแนน กรุณายืนยันใน MetaMask"
+                );
+
+                startButton.disabled = true;
+
+                const transaction =
+                    await contract.startVote();
+
+                showMessage(
+                    "กำลังรอยืนยัน Transaction..."
+                );
+
+                await transaction.wait();
+
+                showMessage(
+                    "เปิดการลงคะแนนสำเร็จ"
+                );
+
+                await loadVotingData();
+
+            } catch (error) {
+                showError(error);
+
+            } finally {
+                updateAdminButtons();
+            }
+        }
+
+        /*
+         * ปิดการลงคะแนน
+         */
+        async function endVote() {
+            try {
+                if (!contract) {
+                    showMessage(
+                        "กรุณาเชื่อมต่อ MetaMask ก่อน",
+                        true
+                    );
+
+                    return;
+                }
+
+                showMessage(
+                    "กำลังปิดการลงคะแนน กรุณายืนยันใน MetaMask"
+                );
+
+                endButton.disabled = true;
+
+                const transaction =
+                    await contract.endVote();
+
+                showMessage(
+                    "กำลังรอยืนยัน Transaction..."
+                );
+
+                await transaction.wait();
+
+                showMessage(
+                    "ปิดการลงคะแนนสำเร็จ"
+                );
+
+                await loadVotingData();
+
+            } catch (error) {
+                showError(error);
+
+            } finally {
+                updateAdminButtons();
+            }
+        }
+
+        /*
+         * ลงคะแนนให้ผู้สมัคร
+         */
+        async function vote(candidate) {
+            try {
+                if (!contract) {
+                    showMessage(
+                        "กรุณาเชื่อมต่อ MetaMask ก่อน",
+                        true
+                    );
+
+                    return;
+                }
+
+                showMessage(
+                    "กำลังลงคะแนนให้ " +
+                    candidate +
+                    " กรุณายืนยันใน MetaMask"
+                );
+
+                const transaction =
+                    await contract.voteForCandidate(
+                        candidate
+                    );
+
+                showMessage(
+                    "ส่ง Transaction แล้ว กรุณารอการยืนยัน..."
+                );
+
+                await transaction.wait();
+
+                showMessage(
+                    "ลงคะแนนให้ " +
+                    candidate +
+                    " สำเร็จ"
+                );
+
+                await loadVotingData();
+
+            } catch (error) {
+                showError(error);
+            }
+        }
+
+        /*
+         * ทำงานเมื่อเปลี่ยน Account ใน MetaMask
+         */
+        async function handleAccountsChanged(accounts) {
+            try {
+                if (accounts.length === 0) {
+                    resetWalletUI();
+
+                    showMessage(
+                        "MetaMask ถูกตัดการเชื่อมต่อ",
+                        true
+                    );
+
+                    return;
+                }
+
+                /*
+                 * เชื่อม Account ใหม่โดยไม่ Reload หน้าเว็บ
+                 */
+                await setupContract(accounts[0]);
+
+                showMessage(
+                    "เปลี่ยนบัญชีเป็น " +
+                    shortenAddress(accounts[0])
+                );
+
+                await loadVotingData();
+
+            } catch (error) {
+                showError(error);
+            }
+        }
+
+        /*
+         * ทำงานเมื่อเปลี่ยน Network
+         */
+        function handleChainChanged() {
+            /*
+             * การเปลี่ยน Network ต้องสร้าง Provider ใหม่
+             */
+            window.location.reload();
+        }
+
+        /*
+         * คืนค่าหน้าเว็บไซต์เมื่อ Wallet ถูกตัดการเชื่อมต่อ
+         */
+        function resetWalletUI() {
+            provider = null;
+            signer = null;
+            contract = null;
+            currentAccount = null;
+            currentState = null;
+
+            document.getElementById(
+                "walletAddress"
+            ).textContent = "ยังไม่ได้เชื่อมต่อ";
+
+            connectButton.textContent =
+                "เชื่อมต่อ MetaMask";
+
+            document.getElementById(
+                "votingState"
+            ).textContent = "ยังไม่ได้โหลดข้อมูล";
+
+            document.getElementById(
+                "voterStatus"
+            ).textContent =
+                "กรุณาเชื่อมต่อ MetaMask";
+
+            document.getElementById(
+                "candidateList"
+            ).innerHTML = "";
+
+            document.getElementById(
+                "adminPanel"
+            ).classList.add("hidden");
+        }
+
+        /*
+         * แสดง Address แบบย่อ
+         */
+        function shortenAddress(address) {
+            return (
+                address.slice(0, 6) +
+                "..." +
+                address.slice(-4)
+            );
+        }
+
+        /*
+         * แสดงข้อความ
+         */
+        function showMessage(
+            text,
+            isError = false
+        ) {
+            const message =
+                document.getElementById("message");
+
+            message.textContent = text;
+
+            message.className = isError
+                ? "message error"
+                : "message success";
+        }
+
+        /*
+         * จัดการข้อความผิดพลาด
+         */
+        function showError(error) {
+            console.error(error);
+
+            const originalText =
+                error.shortMessage ||
+                error.reason ||
+                error.message ||
+                "เกิดข้อผิดพลาด";
+
+            let text = originalText;
+
+            if (
+                originalText.includes(
+                    "CONTRACT_NOT_FOUND"
+                )
+            ) {
+                text =
+                    "ไม่พบ Smart Contract กรุณาตรวจสอบ Contract Address และ Network";
+
+            } else if (
+                originalText.includes(
+                    "wallet must have at least one account"
+                )
+            ) {
+                text =
+                    "MetaMask ยังไม่มี Account หรือยังไม่ได้อนุญาต Account ให้เว็บไซต์";
+
+            } else if (
+                originalText.includes(
+                    "ALREADY VOTED"
+                )
+            ) {
+                text =
+                    "บัญชีนี้ลงคะแนนไปแล้ว";
+
+            } else if (
+                originalText.includes(
+                    "ONLY OFFICIAL"
+                )
+            ) {
+                text =
+                    "เฉพาะผู้ดูแลเท่านั้นที่ดำเนินการได้";
+
+            } else if (
+                originalText.includes(
+                    "INCORRECT STATE"
+                )
+            ) {
+                text =
+                    "ไม่สามารถทำรายการในสถานะปัจจุบันได้";
+
+            } else if (
+                originalText.includes(
+                    "INVALID CANDIDATE"
+                )
+            ) {
+                text =
+                    "ไม่พบผู้สมัครในระบบ";
+
+            } else if (
+                originalText.includes(
+                    "user rejected"
+                ) ||
+                error.code === 4001 ||
+                error.code === "ACTION_REJECTED"
+            ) {
+                text =
+                    "ผู้ใช้ยกเลิกหรือปฏิเสธรายการใน MetaMask";
+
+            } else if (
+                originalText.includes(
+                    "could not coalesce error"
+                )
+            ) {
+                text =
+                    "การเชื่อมต่อ Wallet ขัดข้อง กรุณาปลดล็อก MetaMask แล้วลองใหม่";
+            }
+
+            showMessage(text, true);
+        }
+
+        /*
+         * ลงทะเบียน Event ของ MetaMask เพียงครั้งเดียว
+         */
+        if (window.ethereum) {
+            window.ethereum.on(
+                "accountsChanged",
+                handleAccountsChanged
+            );
+
+            window.ethereum.on(
+                "chainChanged",
+                handleChainChanged
+            );
+        }
+
+        /*
+ * โหลดข้อมูลใหม่ทุก 5 วินาที
+ */
+        setInterval(async function () {
+            if (contract && currentAccount) {
+                await loadVotingData();
+            }
+        }, 5000);
+    </script>
+
+</body>
+
+</html>
